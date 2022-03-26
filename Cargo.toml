@@ -12,6 +12,8 @@ egui_wgpu_backend = "0.17"
 egui-winit = "0.17"
 epi = "0.17"
 glam = "0.20"
+naga = { version = "0.8", features = ["glsl-in", "spv-out"] }
 pollster = "0.2"
-wgpu = "0.12"
+wgpu = { version = "0.12", features = ["spirv"] }
 winit = "0.26"
+zerocopy = "0.6"

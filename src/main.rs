@@ -1,13 +1,10 @@
-#![cfg_attr(windows, windows_subsystem = "windows")]
+use std::iter;
 
 use crate::app::App;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
-use epi::*;
-use std::iter;
-use winit::event::Event::*;
-use winit::event_loop::ControlFlow;
-
+use winit::{event::Event, event_loop::ControlFlow};
 mod app;
+mod shader;
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
@@ -62,11 +59,11 @@ fn main() {
 
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
 
-    let mut app = App::new();
+    let mut app = App::new(&device, &surface_format);
 
     event_loop.run(move |event, _, control_flow| {
         match event {
-            RedrawRequested(..) => {
+            Event::RedrawRequested(..) => {
                 let output_frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(wgpu::SurfaceError::Outdated) => {
@@ -96,6 +93,8 @@ fn main() {
                     label: Some("encoder"),
                 });
 
+                app.draw(&device, &queue, &output_view, &mut encoder);
+
                 let screen_descriptor = ScreenDescriptor {
                     physical_width: surface_config.width,
                     physical_height: surface_config.height,
@@ -114,7 +113,7 @@ fn main() {
                         &output_view,
                         &paint_jobs,
                         &screen_descriptor,
-                        Some(wgpu::Color::BLACK),
+                        None,
                     )
                     .unwrap();
 
@@ -122,10 +121,10 @@ fn main() {
 
                 output_frame.present();
             }
-            MainEventsCleared => {
+            Event::MainEventsCleared => {
                 window.request_redraw();
             }
-            WindowEvent { event, .. } => match event {
+            Event::WindowEvent { event, .. } => match event {
                 winit::event::WindowEvent::Resized(size) => {
                     if size.width > 0 && size.height > 0 {
                         surface_config.width = size.width;
