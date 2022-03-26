@@ -1,3 +1,5 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use crate::app::App;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use epi::*;
@@ -10,7 +12,6 @@ mod app;
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
 
-/// A simple egui + wgpu + winit based example.
 fn main() {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
