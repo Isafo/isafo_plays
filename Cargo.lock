@@ -805,6 +805,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "579160312273c954cc51bd440f059dde741029ac8daf8c84fece76cb77f62c15"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
 name = "glow"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -938,6 +947,7 @@ dependencies = [
  "egui-winit",
  "egui_wgpu_backend",
  "epi",
+ "glam",
  "pollster",
  "wgpu",
  "winit",
