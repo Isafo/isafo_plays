@@ -1,6 +1,6 @@
 use crate::shader;
 use egui::Context;
-use glam::Mat4;
+use glam::{vec3, Mat4};
 use std::mem;
 use wgpu::util::DeviceExt;
 use zerocopy::{AsBytes, FromBytes};
@@ -36,7 +36,7 @@ static TRI_VERTEX_DATA: &[Vertex] = &[
 static TRI_INDEX_DATA: &[u16] = &[0, 1, 2];
 
 pub struct App {
-    test: f32,
+    x_pos: f32,
 
     tri_vertex_buf: wgpu::Buffer,
     tri_index_buf: wgpu::Buffer,
@@ -167,7 +167,7 @@ impl App {
         });
 
         App {
-            test: 0.0,
+            x_pos: 0.0,
             tri_vertex_buf,
             tri_index_buf,
             shader_storage_buffer,
@@ -180,7 +180,7 @@ impl App {
     pub fn ui(&mut self, context: &Context) {
         egui::Window::new("Window").show(context, |ui| {
             ui.label("Hello world!");
-            ui.drag_angle(&mut self.test);
+            ui.add(egui::DragValue::new(&mut self.x_pos).speed(0.1));
         });
     }
 
@@ -191,8 +191,10 @@ impl App {
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
     ) {
+        // setup uniforms and send to gpu
+        let trans = Mat4::from_translation(vec3(self.x_pos, 0.0, 0.0));
         let uniforms = TriUniforms {
-            transform: Mat4::IDENTITY.to_cols_array_2d(),
+            transform: trans.to_cols_array_2d(),
         };
 
         let temp_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -209,6 +211,7 @@ impl App {
             mem::size_of::<TriUniforms>() as u64,
         );
 
+        // Issue draw call
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[wgpu::RenderPassColorAttachment {
