@@ -42,3 +42,7 @@ pub(crate) fn compile(
         compile_stage(device, fs_src, ShaderStage::Fragment),
     )
 }
+
+pub(crate) fn compile_cs(device: &wgpu::Device, cs_src: &str) -> ShaderModule {
+    compile_stage(device, cs_src, ShaderStage::Compute)
+}
