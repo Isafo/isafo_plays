@@ -44,7 +44,7 @@ fn main() {
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             features: wgpu::Features::default(),
-            limits: wgpu::Limits::downlevel_defaults(),
+            limits: wgpu::Limits::default(),
             label: None,
         },
         None,
@@ -72,129 +72,13 @@ fn main() {
         ..Default::default()
     });
 
-    let texture_size = uvec3(size.width, size.height, 64u32);
-    let density_data = device.create_texture(&wgpu::TextureDescriptor {
-        label: None,
-        size: wgpu::Extent3d {
-            width: texture_size.x,
-            height: texture_size.y,
-            depth_or_array_layers: texture_size.z,
-        },
-        mip_level_count: 1,
-        dimension: wgpu::TextureDimension::D3,
-        format: wgpu::TextureFormat::R32Float,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING,
-        sample_count: 1,
-    });
-
+    let texture_size = uvec3(200u32, 200u32, 2u32);//uvec3(size.width, size.height, 2u32);
     let mut state = egui_winit::State::new(4096, &window);
     let context = egui::Context::default();
 
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
 
-    let mut app = App::new(&device, &surface_format);
-
-    let cs_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: (wgpu::BufferBindingType::Storage { read_only: false }),
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                    view_dimension: wgpu::TextureViewDimension::D3,
-                    multisampled: false,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-        ],
-        label: None,
-    });
-
-    let cs_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[&cs_bind_group_layout],
-        push_constant_ranges: &[],
-    });
-
-    let cs_module = shader::compile_cs(&device, "compute_test.glsl");
-    let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: None,
-        layout: Some(&cs_pipeline_layout),
-        module: &cs_module,
-        entry_point: "main",
-    });
-
-    let cell_count = texture_size.x * texture_size.y * texture_size.z;
-    let max_triangle_count = 4 * cell_count as usize;
-    let max_index_count = max_triangle_count * 3;
-    let mut vertex_data = vec![Vertex::default(); max_triangle_count];
-    let mut index_data = vec![u32::default(); max_index_count];
-
-    let vertex_data_slice_size = vertex_data.len() * std::mem::size_of::<Vertex>();
-    let vertex_slice_size = vertex_data_slice_size as wgpu::BufferAddress;
-
-    let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: None,
-        size: vertex_slice_size,
-        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
-        mapped_at_creation: false,
-    });
-
-    let index_data_slice_size = index_data.len() * std::mem::size_of::<Vertex>();
-    let index_slice_size = index_data_slice_size as wgpu::BufferAddress;
-
-    let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: None,
-        size: index_slice_size,
-        usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::STORAGE,
-        mapped_at_creation: false,
-    });
-
-    let vertex_bind_group_layout = compute_pipeline.get_bind_group_layout(0);
-    let vertex_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: None,
-        layout: &vertex_bind_group_layout,
-        entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: vertex_buffer.as_entire_binding(),
-        }],
-    });
-
-    let index_bind_group_layout = compute_pipeline.get_bind_group_layout(1);
-    let index_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: None,
-        layout: &index_bind_group_layout,
-        entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: index_buffer.as_entire_binding(),
-        }],
-    });
+    let mut app = App::new(&device, &surface_format, texture_size);
 
     let mut encoder =
         device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -202,14 +86,6 @@ fn main() {
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(..) => {
-                let mut cs_pass =
-                    encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-                cs_pass.set_pipeline(&compute_pipeline);
-                cs_pass.set_bind_group(0, &vertex_bind_group, &[]);
-                cs_pass.set_bind_group(1, &index_bind_group, &[]);
-                cs_pass.insert_debug_marker("compute density values + mc");
-                cs_pass.dispatch(texture_size.x, texture_size.y, texture_size.z);
-
                 let output_frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(wgpu::SurfaceError::Outdated) => {
