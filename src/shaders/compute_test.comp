@@ -10,5 +10,5 @@ void main()
     float distance = length(vec3(coord.x - 0.5f, coord.y - 0.5f, coord.z - 0.5f));
     float scalar = step(0.2, distance);
     
-    imageStore(img_out, coord, scalar);
+    imageStore(img_out, ivec3(coord), vec4(scalar));
 }
