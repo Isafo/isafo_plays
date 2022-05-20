@@ -229,7 +229,7 @@ impl App {
             push_constant_ranges: &[],
         });
 
-        let cs_module = shader::compile_cs(device, include_str!("shaders/compute_test.glsl"));
+        let cs_module = shader::compile_cs(device, include_str!("shaders/compute_test.comp"));
         let cs_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: None,
             layout: Some(&cs_pipeline_layout),
